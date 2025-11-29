@@ -1,7 +1,9 @@
 package com.jpmc.midascore.service;
 
+import com.jpmc.midascore.entity.TransactionRecord;
 import com.jpmc.midascore.entity.UserRecord;
 import com.jpmc.midascore.foundation.Transaction;
+import com.jpmc.midascore.repository.TransactionRepository;
 import com.jpmc.midascore.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +17,9 @@ public class TransactionProcessorService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
 
     @Transactional
     public void processTransaction(Transaction transaction) {
@@ -48,6 +53,10 @@ public class TransactionProcessorService {
         // Save updated records
         userRepository.save(sender);
         userRepository.save(recipient);
+
+        // Record the transaction in the database
+        TransactionRecord transactionRecord = new TransactionRecord(sender, recipient, transaction.getAmount());
+        transactionRepository.save(transactionRecord);
 
         logger.info("Transaction processed successfully: {} sent {} to {}",
                 sender.getName(), transaction.getAmount(), recipient.getName());
