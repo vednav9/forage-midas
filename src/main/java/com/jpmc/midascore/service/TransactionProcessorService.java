@@ -21,6 +21,9 @@ public class TransactionProcessorService {
     @Autowired
     private TransactionRepository transactionRepository;
 
+    @Autowired
+    private IncentiveApiService incentiveApiService;
+
     @Transactional
     public void processTransaction(Transaction transaction) {
         logger.info("Processing transaction: {}", transaction);
@@ -46,19 +49,23 @@ public class TransactionProcessorService {
             return;
         }
 
+        // Get incentive from API
+        float incentive = incentiveApiService.getIncentive(transaction);
+        logger.info("Incentive for transaction: {}", incentive);
+
         // Process the transaction
         sender.setBalance(sender.getBalance() - transaction.getAmount());
-        recipient.setBalance(recipient.getBalance() + transaction.getAmount());
+        recipient.setBalance(recipient.getBalance() + transaction.getAmount() + incentive);
 
         // Save updated records
         userRepository.save(sender);
         userRepository.save(recipient);
 
-        // Record the transaction in the database
-        TransactionRecord transactionRecord = new TransactionRecord(sender, recipient, transaction.getAmount());
+        // Record the transaction in the database with incentive
+        TransactionRecord transactionRecord = new TransactionRecord(sender, recipient, transaction.getAmount(), incentive);
         transactionRepository.save(transactionRecord);
 
-        logger.info("Transaction processed successfully: {} sent {} to {}",
-                sender.getName(), transaction.getAmount(), recipient.getName());
+        logger.info("Transaction processed successfully: {} sent {} to {} (incentive: {})",
+                sender.getName(), transaction.getAmount(), recipient.getName(), incentive);
     }
 }
